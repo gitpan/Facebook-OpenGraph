@@ -1,14 +1,27 @@
+This is Perl module Facebook::OpenGraph.
 
+INSTALLATION
 
-This archive contains the distribution Facebook-OpenGraph,
-version 0.1:
+Facebook::OpenGraph installation is straightforward. If your CPAN shell is set up,
+you should just be able to do
 
-  Facebook OpenGraph API Wrapper
+    % cpan Facebook::OpenGraph
 
-This software is Copyright (c) 2012 by Cinemoz.
+Download it, unpack it, then build it as per the usual:
 
-This is free software, licensed under:
+    % perl Makefile.PL
+    % make && make test
 
-  The (three-clause) BSD License
+Then install it:
 
+    % make install
 
+DOCUMENTATION
+
+Facebook::OpenGraph documentation is available as in POD. So you can do:
+
+    % perldoc Facebook::OpenGraph
+
+to read the documentation online with your favorite pager.
+
+Oklahomer
