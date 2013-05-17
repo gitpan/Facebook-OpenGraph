@@ -29,4 +29,4 @@ requires:
 resources:
   license: http://dev.perl.org/licenses/
   repository: git://github.com/oklahomer/p5-Facebook-OpenGraph.git
-version: 0.02
+version: 0.03
