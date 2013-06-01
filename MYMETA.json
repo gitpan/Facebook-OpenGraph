@@ -4,7 +4,7 @@
       "Oklahomer <hagiwara dot go at gmail dot com>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Module::Install version 1.06, CPAN::Meta::Converter version 2.112150",
+   "generated_by" : "Module::Install version 1.06, CPAN::Meta::Converter version 2.130880",
    "license" : [
       "perl_5"
    ],
@@ -24,8 +24,8 @@
       "build" : {
          "requires" : {
             "ExtUtils::MakeMaker" : "6.36",
-            "Test::Exception" : 0,
-            "Test::More" : 0
+            "Test::Exception" : "0",
+            "Test::More" : "0"
          }
       },
       "configure" : {
@@ -35,12 +35,12 @@
       },
       "runtime" : {
          "requires" : {
-            "Data::Recursive::Encode" : 0,
-            "Furl" : 0,
-            "HTTP::Message" : 0,
-            "JSON" : 0,
-            "MIME::Base64::URLSafe" : 0,
-            "URI" : 0
+            "Data::Recursive::Encode" : "0",
+            "Furl" : "0",
+            "HTTP::Message" : "0",
+            "JSON" : "0",
+            "MIME::Base64::URLSafe" : "0",
+            "URI" : "0"
          }
       }
    },
@@ -53,5 +53,5 @@
          "url" : "git://github.com/oklahomer/p5-Facebook-OpenGraph.git"
       }
    },
-   "version" : "0.03"
+   "version" : "0.04"
 }
