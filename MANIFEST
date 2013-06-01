@@ -27,6 +27,7 @@ t/001_basic/03_video_uri.t
 t/001_basic/04_auth_uri.t
 t/001_basic/05_signed_request.t
 t/001_basic/06_prep_param.t
+t/001_basic/07_appsecret_proof.t
 t/001_basic/07_field_expansion.t
 t/002_retrieve/01_get_app_token.t
 t/002_retrieve/02_get_user_token.t
@@ -38,6 +39,7 @@ t/002_retrieve/07_bulk_fetch.t
 t/002_retrieve/08_fql.t
 t/002_retrieve/09_bulk_fql.t
 t/002_retrieve/10_check_object.t
+t/002_retrieve/11_appsecret_proof.t
 t/003_publish/01_post.t
 t/003_publish/02_post_photo.t
 t/003_publish/03_post_movie.t
