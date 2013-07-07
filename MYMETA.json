@@ -25,6 +25,7 @@
          "requires" : {
             "ExtUtils::MakeMaker" : "6.36",
             "Test::Exception" : "0",
+            "Test::Mock::Furl" : "0",
             "Test::More" : "0"
          }
       },
@@ -53,5 +54,5 @@
          "url" : "git://github.com/oklahomer/p5-Facebook-OpenGraph.git"
       }
    },
-   "version" : "1.00"
+   "version" : "1.10"
 }

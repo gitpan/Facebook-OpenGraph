@@ -12,7 +12,7 @@ use Digest::SHA qw(hmac_sha256 hmac_sha256_hex);
 use MIME::Base64::URLSafe qw(urlsafe_b64decode);
 use Scalar::Util qw(blessed);
 
-our $VERSION = '1.00';
+our $VERSION = '1.10';
 
 sub new {
     my $class = shift;
@@ -87,8 +87,8 @@ sub _uri {
     return $uri;
 }
 
-# Using the signed_request Parameter: Step 1. Parse the signed_request
-# https://developers.facebook.com/docs/howtos/login/signed-request/#step1
+# Using Login with Games on Facebook: Parsing the Signed Request
+# https://developers.facebook.com/docs/facebook-login/using-login-with-games/#parsingsr
 sub parse_signed_request {
     my ($self, $signed_request) = @_;
     croak 'signed_request is not given' unless $signed_request;
@@ -107,7 +107,7 @@ sub parse_signed_request {
     return $val;
 }
 
-# OAuth Dialog: Constructing a URL to the OAuth Dialog
+# OAuth Dialog: Constructing a URL to the OAuth dialog
 # https://developers.facebook.com/docs/reference/dialogs/oauth/
 sub auth_uri {
     my ($self, $param_ref) = @_;
@@ -133,8 +133,8 @@ sub set_access_token {
     $self->{access_token} = $token;
 }
 
-# Login as an App: Step 1. Obtain an App Access Token
-# https://developers.facebook.com/docs/howtos/login/login-as-app/#step1
+# Access Tokens: App Tokens
+# https://developers.facebook.com/docs/facebook-login/access-tokens/#apptokens
 sub get_app_token {
     my $self = shift;
 
@@ -143,8 +143,8 @@ sub get_app_token {
     return $token_ref;
 }
 
-# Login for Server-side Apps: Step 6. Exchange the code for an Access Token
-# https://developers.facebook.com/docs/howtos/login/server-side-login/#step6
+# The Login Flow for Web (without JavaScript SDK): Exchanging code for an access token
+# https://developers.facebook.com/docs/facebook-login/login-flow-for-web-no-jssdk/#exchangecode
 sub get_user_token_by_code {
     my ($self, $code) = @_;
 
@@ -279,7 +279,7 @@ sub batch_fast {
 }
 
 # Facebook Query Language (FQL)
-# https://developers.facebook.com/docs/reference/fql/
+# https://developers.facebook.com/docs/technical-guides/fql/
 sub fql {
     my $self  = shift;
     my $query = shift;
@@ -287,14 +287,14 @@ sub fql {
 }
 
 # Facebook Query Language (FQL): Multi-query
-# https://developers.facebook.com/docs/reference/fql/#multi
+# https://developers.facebook.com/docs/technical-guides/fql/#multi
 sub bulk_fql {
     my $self  = shift;
     my $batch = shift;
     return $self->fql($self->json->encode($batch), @_);
 }
 
-# Graph API: Deleting
+# Deleting: Objects
 # https://developers.facebook.com/docs/reference/api/deleting/
 sub delete {
     my $self      = shift;
@@ -378,6 +378,22 @@ sub request {
                 } $req_header->header_field_names
             ];
         }
+        elsif ($param_ref->{file}) {
+            # post image file to Facebook's staging server
+            # https://developers.facebook.com/docs/opengraph/using-object-api/#images
+            # The document does NOT provide what Content-Type we should set, but
+            # it works without specifying it. I hate when it happens...
+            push @$headers, (Content_Type => 'form-data');
+            my $req = POST $uri, @$headers, Content => [%$param_ref];
+            $content = $req->content;
+            my $req_header = $req->headers;
+            $headers = +[
+                map {
+                    my $k = $_;
+                    map { ( $k => $_ ) } $req_header->header($_);
+                } $req_header->header_field_names
+            ];
+        }
         else {
             # post simple params such as message, link, description, etc...
             $content = $param_ref;
@@ -437,10 +453,13 @@ sub prep_param {
         $param_ref->{permissions} = ref $perms ? join ',', @$perms : $perms;
     }
 
-    # Source parameter contains file path.
+    # Source and file parameter contains file path.
     # It must be an array ref to work w/ HTTP::Request::Common.
     if (my $path = $param_ref->{source}) {
         $param_ref->{source} = ref $path ? $path : [$path];
+    }
+    if (my $path = $param_ref->{file}) {
+        $param_ref->{file} = ref $path ? $path : [$path];
     }
 
     # use Field Expansion
@@ -448,7 +467,7 @@ sub prep_param {
         $param_ref->{fields} = $self->prep_fields_recursive($field_ref);
     }
 
-    # Object API
+    # Using the Object API
     # https://developers.facebook.com/docs/opengraph/using-object-api/
     my $object = $param_ref->{object};
     if ($object && ref $object eq 'HASH') {
@@ -482,8 +501,8 @@ sub prep_fields_recursive {
     }
 }
 
-# How-To: Publish an Action
-# https://developers.facebook.com/docs/technical-guides/opengraph/publish-action/#create
+# Using Actions: Publishing Actions
+# https://developers.facebook.com/docs/opengraph/using-actions/#publish
 sub publish_action {
     my $self   = shift;
     my $action = shift;
@@ -491,7 +510,15 @@ sub publish_action {
     return $self->post(sprintf('/me/%s:%s', $self->namespace, $action), @_);
 }
 
-# Test Users
+# Using the Object API: Images with the Object API
+# https://developers.facebook.com/docs/opengraph/using-object-api/#images
+sub publish_staging_resource {
+    my $self = shift;
+    my $file = shift;
+    return $self->post('/me/staging_resources', +{file => $file}, @_);
+}
+
+# Test Users: Creating
 # https://developers.facebook.com/docs/test_users/
 sub create_test_users {
     my $self         = shift;
@@ -511,8 +538,8 @@ sub create_test_users {
     return $self->batch(\@settings);
 }
 
-# Updating Objects 
-# https://developers.facebook.com/docs/technical-guides/opengraph/defining-an-object/#update
+# Using Self-Hosted Objects: Updating Objects 
+# https://developers.facebook.com/docs/opengraph/using-objects/#update
 sub check_object {
     my ($self, $target) = @_;
     my $param_ref = +{
@@ -531,7 +558,7 @@ Facebook::OpenGraph - Simple way to handle Facebook's Graph API.
 
 =head1 VERSION
 
-This is Facebook::OpenGraph version 1.00
+This is Facebook::OpenGraph version 1.10
 
 =head1 SYNOPSIS
     
@@ -1028,7 +1055,7 @@ don't usually use this method directly.
 
 =head3 C<< $fb->publish_action($action_type, \%param) >>
 
-Alias to C<request()> that optimizes body content and endpoint to sends C<POST> 
+Alias to C<request()> that optimizes body content and endpoint to send C<POST> 
 request to publish Open Graph Action.
 
   my $res = $fb->publish_action('give', +{crap => 'https://sample.com/poop/'});
@@ -1066,6 +1093,18 @@ request to publish Open Graph Action.
   #];
 
 Alias to C<request()> that optimizes to create test users for your application.
+
+=head3 C<< $fb->publish_staging_resource($file_path) >>
+
+Alias to C<request()> that optimizes body content to send C<POST> request to upload image to Object API's staging environment.
+  
+  my $fb = Facebook::OpenGraph->new(+{
+      access_token => $USER_ACCESS_TOKEN,
+  });
+  my $res = $fb->publish_staging_resource('/path/to/file');
+  #{
+  #  uri => 'fbstaging://graph.facebook.com/staging_resources/MDExMzc3MDU0MDg1ODQ3OTY2OjE5MDU4NTM1MzQ=',
+  #};
 
 =head3 C<< $fb->check_object($object_id_or_url) >>
 
