@@ -4,6 +4,7 @@ author:
   - 'Oklahomer <hagiwara dot go at gmail dot com>'
 build_requires:
   ExtUtils::MakeMaker: 6.36
+  Test::Builder::IO::Scalar: 0
 configure_requires:
   ExtUtils::MakeMaker: 6.36
 dynamic_config: 0
@@ -20,12 +21,20 @@ no_index:
     - xt
 requires:
   Data::Recursive::Encode: 0
+  Digest::SHA: 0
   Furl: 0
+  Furl::HTTP: 0
   HTTP::Message: 0
-  JSON: 0
+  HTTP::Request::Common: 0
+  JSON: 2
   MIME::Base64::URLSafe: 0
+  Module::Build: 0
+  Parse::CPAN::Meta: 0
+  Scalar::Util: 0
+  Sub::Uplevel: 0
   URI: 0
+  parent: 0
 resources:
   license: http://dev.perl.org/licenses/
   repository: git://github.com/oklahomer/p5-Facebook-OpenGraph.git
-version: 1.00
+version: 1.10

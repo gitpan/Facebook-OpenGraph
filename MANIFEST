@@ -10,8 +10,11 @@ inc/Module/Install/Metadata.pm
 inc/Module/Install/Repository.pm
 inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
+inc/Test/Builder.pm
+inc/Test/Builder/Module.pm
 inc/Test/Exception.pm
 inc/Test/Mock/Furl.pm
+inc/Test/MockObject.pm
 inc/Test/More.pm
 lib/Facebook/OpenGraph.pm
 lib/Facebook/OpenGraph/Response.pm
@@ -43,12 +46,14 @@ t/002_retrieve/09_bulk_fql.t
 t/002_retrieve/10_check_object.t
 t/002_retrieve/11_appsecret_proof.t
 t/002_retrieve/12_use_post_method.t
+t/002_retrieve/13_paging.t
 t/003_publish/01_post.t
 t/003_publish/02_post_photo.t
 t/003_publish/03_post_movie.t
 t/003_publish/04_create_test_users.t
 t/003_publish/05_publish_action.t
 t/003_publish/06_publish_staging_resource.t
+t/003_publish/07_post_like.t
 t/00_compile.t
 t/01_auth_uri.t
 t/01_get_app_token.t
