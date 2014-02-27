@@ -4,7 +4,7 @@
       "Oklahomer <hagiwara dot go at gmail dot com>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Module::Install version 1.06, CPAN::Meta::Converter version 2.130880",
+   "generated_by" : "Minilla/v0.11.0",
    "license" : [
       "perl_5"
    ],
@@ -15,27 +15,38 @@
    "name" : "Facebook-OpenGraph",
    "no_index" : {
       "directory" : [
-         "inc",
          "t",
-         "xt"
+         "xt",
+         "inc",
+         "share",
+         "eg",
+         "examples",
+         "author",
+         "builder"
       ]
    },
    "prereqs" : {
       "build" : {
          "requires" : {
             "ExtUtils::MakeMaker" : "6.36",
-            "Test::Builder" : "0",
-            "Test::Builder::IO::Scalar" : "0",
-            "Test::Builder::Module" : "0",
             "Test::Exception" : "0",
             "Test::Mock::Furl" : "0",
-            "Test::MockObject" : "0",
-            "Test::More" : "0"
+            "Test::MockObject" : "0"
          }
       },
       "configure" : {
          "requires" : {
-            "ExtUtils::MakeMaker" : "6.36"
+            "CPAN::Meta" : "0",
+            "CPAN::Meta::Prereqs" : "0",
+            "Module::Build" : "0.38"
+         }
+      },
+      "develop" : {
+         "requires" : {
+            "Test::CPAN::Meta" : "0",
+            "Test::MinimumVersion" : "0.10108",
+            "Test::Pod" : "1.41",
+            "Test::Spellunker" : "v0.2.7"
          }
       },
       "runtime" : {
@@ -57,14 +68,29 @@
          }
       }
    },
-   "release_status" : "stable",
-   "resources" : {
-      "license" : [
-         "http://dev.perl.org/licenses/"
-      ],
-      "repository" : {
-         "url" : "git://github.com/oklahomer/p5-Facebook-OpenGraph.git"
+   "provides" : {
+      "Facebook::OpenGraph" : {
+         "file" : "lib/Facebook/OpenGraph.pm",
+         "version" : "1.12"
+      },
+      "Facebook::OpenGraph::Response" : {
+         "file" : "lib/Facebook/OpenGraph/Response.pm"
       }
    },
-   "version" : "1.11"
+   "release_status" : "stable",
+   "resources" : {
+      "bugtracker" : {
+         "web" : "https://github.com/oklahomer/p5-Facebook-OpenGraph/issues"
+      },
+      "homepage" : "https://github.com/oklahomer/p5-Facebook-OpenGraph",
+      "repository" : {
+         "url" : "git://github.com/oklahomer/p5-Facebook-OpenGraph.git",
+         "web" : "https://github.com/oklahomer/p5-Facebook-OpenGraph"
+      }
+   },
+   "version" : "1.12",
+   "x_contributors" : [
+      "Oklahomer <go.hagiwara@facebook.com>",
+      "Oklahomer <hagiwara.go@gmail.com>"
+   ]
 }

@@ -4,12 +4,15 @@ author:
   - 'Oklahomer <hagiwara dot go at gmail dot com>'
 build_requires:
   ExtUtils::MakeMaker: 6.36
-  Test::Builder::IO::Scalar: 0
+  Test::Exception: 0
+  Test::Mock::Furl: 0
+  Test::MockObject: 0
 configure_requires:
-  ExtUtils::MakeMaker: 6.36
-distribution_type: module
-dynamic_config: 1
-generated_by: 'Module::Install version 1.06'
+  CPAN::Meta: 0
+  CPAN::Meta::Prereqs: 0
+  Module::Build: 0.38
+dynamic_config: 0
+generated_by: 'Minilla/v0.11.0, CPAN::Meta::Converter version 2.120921'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -17,9 +20,21 @@ meta-spec:
 name: Facebook-OpenGraph
 no_index:
   directory:
-    - inc
     - t
     - xt
+    - inc
+    - share
+    - eg
+    - examples
+    - author
+    - builder
+provides:
+  Facebook::OpenGraph:
+    file: lib/Facebook/OpenGraph.pm
+    version: 1.12
+  Facebook::OpenGraph::Response:
+    file: lib/Facebook/OpenGraph/Response.pm
+    version: 0
 requires:
   Data::Recursive::Encode: 0
   Digest::SHA: 0
@@ -35,8 +50,11 @@ requires:
   Sub::Uplevel: 0
   URI: 0
   parent: 0
-  perl: 5.006
 resources:
-  license: http://dev.perl.org/licenses/
+  bugtracker: https://github.com/oklahomer/p5-Facebook-OpenGraph/issues
+  homepage: https://github.com/oklahomer/p5-Facebook-OpenGraph
   repository: git://github.com/oklahomer/p5-Facebook-OpenGraph.git
-version: 1.11
+version: 1.12
+x_contributors:
+  - 'Oklahomer <go.hagiwara@facebook.com>'
+  - 'Oklahomer <hagiwara.go@gmail.com>'
