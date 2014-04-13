@@ -29,6 +29,7 @@ t/002_retrieve/10_check_object.t
 t/002_retrieve/11_appsecret_proof.t
 t/002_retrieve/12_use_post_method.t
 t/002_retrieve/13_paging.t
+t/002_retrieve/14_exchange_token.t
 t/003_publish/01_post.t
 t/003_publish/02_post_photo.t
 t/003_publish/03_post_movie.t

@@ -12,7 +12,7 @@ use Digest::SHA qw(hmac_sha256 hmac_sha256_hex);
 use MIME::Base64::URLSafe qw(urlsafe_b64decode);
 use Scalar::Util qw(blessed);
 
-our $VERSION = '1.12';
+our $VERSION = '1.13';
 
 sub new {
     my $class = shift;
@@ -97,21 +97,38 @@ sub parse_signed_request {
     croak 'signed_request is not given' unless $signed_request;
     croak 'secret key must be set'      unless $self->secret;
 
+    # "1. Split the signed request into two parts delineated by a '.' character
+    # (eg. 238fsdfsd.oijdoifjsidf899)"
     my ($enc_sig, $payload) = split(m{ \. }xms, $signed_request);
+
+    # "2. Decode the first part - the encoded signature - from base64url"
     my $sig = urlsafe_b64decode($enc_sig);
+
+    # "3. Decode the second part - the 'payload' - from base64url and then
+    # decode the resultant JSON object"
     my $val = $self->json->decode(urlsafe_b64decode($payload));
 
+    # "It specifically uses HMAC-SHA256 encoding, which you can again use with
+    # most programming languages."
     croak 'algorithm must be HMAC-SHA256'
         unless uc($val->{algorithm}) eq 'HMAC-SHA256';
 
+    # "You can compare this encoded signature with an expected signature using
+    # the payload you received as well as the app secret which is known only to
+    # your and ensure that they match."
     my $expected_sig = hmac_sha256($payload, $self->secret);
     croak 'Signature does not match' unless $sig eq $expected_sig;
 
     return $val;
 }
 
+# Detailed flow is described here.
 # Manually Build a Login Flow > Logging people in > Invoking the login dialog
 # https://developers.facebook.com/docs/facebook-login/manually-build-a-login-flow/
+#
+# Parameters for login dialog are shown here.
+# Login Dialog > Parameters
+# https://developers.facebook.com/docs/reference/dialogs/oauth/
 sub auth_uri {
     my ($self, $param_ref) = @_;
     $param_ref ||= +{};
@@ -119,14 +136,32 @@ sub auth_uri {
         unless $self->redirect_uri && $self->app_id;
 
     if (my $scope_ref = ref $param_ref->{scope}) {
+        # "A comma separated list of permission names which you would like
+        # people to grant your app."
         $param_ref->{scope} 
-            = $scope_ref eq 'ARRAY' ? join q{,}, @{$param_ref->{scope}}
+            = $scope_ref eq 'ARRAY' ? join q{,}, @{ $param_ref->{scope} }
             :                         croak 'scope must be string or array ref'
             ;
     }
+
+    # "The URL to redirect to after a button is clicked or tapped in the
+    # dialog."
     $param_ref->{redirect_uri} = $self->redirect_uri;
-    $param_ref->{client_id}    = $self->app_id;
-    $param_ref->{display}      ||= 'page';
+
+    # "Your App ID. This is called client_id instead of app_id for this
+    # particular method in order to be compliant with the OAuth 2.0
+    # specification."
+    $param_ref->{client_id} = $self->app_id;
+
+    # "If you are using the URL redirect dialog implementation, then this will
+    # be a full page display, shown within Facebook.com. This display type is
+    # called page."
+    $param_ref->{display} ||= 'page';
+
+    # "Response data is included as URL parameters and contains code parameter
+    # (an encrypted string unique to each login request). This is the default
+    # behaviour if this parameter is not specified."
+    $param_ref->{response_type} ||= 'code';
 
     return $self->site_uri('/dialog/oauth/', $param_ref)->as_string;
 }
@@ -142,6 +177,11 @@ sub get_app_token {
     my $self = shift;
 
     croak 'app_id and secret must be set' unless $self->app_id && $self->secret;
+
+    # Document does not mention what grant_type is all about or what values can
+    # be set, but RFC 6749 covers the basic idea of grant types and Section 4.4
+    # describes Client Credentials Grant.
+    # http://tools.ietf.org/html/rfc6749#section-4.4
     return $self->_get_token(+{grant_type => 'client_credentials'});
 }
 
@@ -156,6 +196,25 @@ sub get_user_token_by_code {
     my $query_ref = +{
         redirect_uri => $self->redirect_uri,
         code         => $code,
+    };
+    my $token_ref = $self->_get_token($query_ref);
+    croak 'expires is not returned' unless $token_ref->{expires};
+
+    return $token_ref;
+}
+
+
+# Access Tokens > Expiration and Extending Tokens
+# https://developers.facebook.com/docs/facebook-login/access-tokens/
+sub exchange_token {
+    my ($self, $short_term_token) = @_;
+
+    croak 'short term token is not given' unless $short_term_token;
+    croak 'app_id and secret must be set' unless $self->app_id && $self->secret;
+
+    my $query_ref = +{
+        grant_type        => 'fb_exchange_token',
+        fb_exchange_token => $short_term_token,
     };
     my $token_ref = $self->_get_token($query_ref);
     croak 'expires is not returned' unless $token_ref->{expires};
@@ -324,14 +383,8 @@ sub request {
         %{$param_ref || +{}},
     });
 
-    # Official document is not provided yet, but I'm pretty sure it's some sort 
-    # of signature that Amazon requires for each API request.
-    # Check PHP SDK(base_facebook.php) for detail. It already implemented it.
-    #  protected function getAppSecretProof($access_token) {
-    #    return hash_hmac('sha256', $access_token, $this->getAppSecret());
-    #  }
-    # To enable this you have to visit App Setting > Advanced > Security and 
-    # check "Require AppSecret Proof for Server API call"
+    # Securing Graph API Requests > Verifying Graph API Calls with appsecret_proof
+    # https://developers.facebook.com/docs/graph-api/securing-requests/
     if ($self->use_appsecret_proof) {
         $param_ref->{appsecret_proof} = $self->gen_appsecret_proof;
     }
@@ -348,7 +401,11 @@ sub request {
     }
 
     $headers ||= [];
-    # http://tools.ietf.org/html/draft-ietf-oauth-v2-10#section-5.1.1
+
+    # Document says we can pass access_token as a part of query parameter,
+    # but it actually supports Authorization header to be compliant with the
+    # OAuth 2.0 spec.
+    # http://tools.ietf.org/html/rfc6749#section-7
     if ($self->access_token) {
         push @$headers, (
                             'Authorization',
@@ -405,20 +462,21 @@ sub request {
     );
 
     my $res = $self->create_response(@res_elms);
-    if ($res->is_success) {
-        return $res;
+
+    # return F::OG::Response object on success
+    return $res if $res->is_success;
+
+    # Use later version of Furl::HTTP to utilize req_headers and
+    # req_content. This Should be helpful when debugging.
+    my $msg = $res->error_string;
+    if ($res->req_headers) {
+        $msg .= "\n" . $res->req_headers . $res->req_content;
     }
-    else {
-        # Use later version of Furl::HTTP to utilize req_headers and
-        # req_content. This Should be helpful when debugging.
-        my $msg = $res->error_string;
-        if ($res->req_headers) {
-            $msg .= "\n" . $res->req_headers . $res->req_content;
-        }
-        croak $msg;
-    }
+    croak $msg;
 }
 
+# Securing Graph API Requests > Verifying Graph API Calls with appsecret_proof > Generating the proof
+# https://developers.facebook.com/docs/graph-api/securing-requests/
 sub gen_appsecret_proof {
     my $self = shift;
     croak 'app secret must be set'   unless $self->secret;
@@ -475,7 +533,7 @@ sub prep_param {
     return $param_ref;
 }
 
-# Using the Graph API: Reading > Making Nested Requests
+# Using the Graph API: Reading > Choosing Fields > Making Nested Requests
 # https://developers.facebook.com/docs/graph-api/using-graph-api/
 sub prep_fields_recursive {
     my ($self, $val) = @_;
@@ -558,7 +616,7 @@ Facebook::OpenGraph - Simple way to handle Facebook's Graph API.
 
 =head1 VERSION
 
-This is Facebook::OpenGraph version 1.12
+This is Facebook::OpenGraph version 1.13
 
 =head1 SYNOPSIS
     
@@ -603,21 +661,48 @@ This is Facebook::OpenGraph version 1.12
 
 =head1 DESCRIPTION
 
-Facebook::OpenGraph is a Perl interface to handle Facebook's Graph API.
+Facebook::OpenGraph is a Perl interface to handle Facebook's Graph API. 
 This was inspired by L<Facebook::Graph>, but this focuses on simplicity and 
-customizability because Facebook Platform modifies its API spec so frequently 
+customizability because Facebook Platform modifies its API specs so frequently 
 and we have to be able to handle it in shorter period of time.
 
 This module does B<NOT> provide ways to set and validate parameters for each 
 API endpoint like Facebook::Graph does with Any::Moose. Instead it provides 
-some basic methods for HTTP request and various methods to handle Graph API's 
-functionality such as Batch Request, FQL including multi-query, Field 
-Expansion, ETag, wall posting w/ photo or video, creating Test Users, checking 
-and updating Open Graph Object or web page w/ OGP, publishing Open Graph 
-Action, deleting Open Graph Object and etc...
+some basic methods for HTTP request. It also provides some handy methods that 
+wrap C<request()> for you to easily utilize most of Graph API's functionalities 
+including:
 
-You can specify endpoints and request parameters by yourself so it should be 
-easier to test the latest API spec.
+=over 4
+
+=item * Acquiring user, app and/or page token and refreshing user token for 
+long lived one. 
+
+=item * Batch Request
+
+=item * FQL 
+
+=item * FQL with Multi-Query
+
+=item * Field Expansion
+
+=item * Etag
+
+=item * Wall Posting w/ Photo or Video
+
+=item * Creating Test Users
+
+=item * Checking and Updating Open Graph Object or Web Page w/ OGP
+
+=item * Publishing Open Graph Action
+
+=item * Deleting Open Graph Object
+
+=item * Posting Staging Resource for Open Graph Object
+
+=back
+
+In most cases you can specify endpoints and request parameters by yourself so 
+it should be easier to test the latest API specs.
 
 =head1 METHODS
 
@@ -674,16 +759,27 @@ Access token for user, application or Facebook Page.
 
 =item * redirect_uri
 
-The URL to be used for authorization. Detail should be found at 
+The URL to be used for authorization. User will be redirected to this URL after 
+login dialog. Detail should be found at 
 L<https://developers.facebook.com/docs/reference/dialogs/oauth/>.
+
+You must keep in mind that "The URL you specify must be a URL with the same 
+base domain specified in your app's settings, a Canvas URL of the form 
+https://apps.facebook.com/YOUR_APP_NAMESPACE or a Page Tab URL of the form 
+https://www.facebook.com/PAGE_USERNAME/app_YOUR_APP_ID"
 
 =item * batch_limit
 
 The maximum # of queries that can be set w/in a single batch request. If the # 
 of given queries exceeds this, then queries are divided into multiple batch 
 requests and responses are combined so it seems just like a single request. 
+
 Default value is 50 as API documentation says. Official documentation is 
 located at L<https://developers.facebook.com/docs/graph-api/making-multiple-requests/>
+
+You must be aware that "each call within the batch is counted separately for 
+the purposes of calculating API call limits and resource limits." 
+See L<https://developers.facebook.com/docs/reference/ads-api/api-rate-limiting/>.
 
 =item * is_beta
 
@@ -698,10 +794,10 @@ JSON->new->utf8.
 =item * use_appsecret_proof
 
 Whether to use appsecret_proof parameter or not. Default is 0.
-Official document is not provided yet, but official PHP SDK support it so I 
-implemented it anyway. Please refer to PHP SDK for detail. To enable this 
-parameter you have to visit App Setting > Advanced > Security and check 
-"Require AppSecret Proof for Server API call." 
+Long-desired official document is now provided at 
+L<https://developers.facebook.com/docs/graph-api/securing-requests/>
+
+You must specify access_token and application secret to utilize this.
 
 =back
 
@@ -714,8 +810,9 @@ parameter you have to visit App Setting > Advanced > Security and check
       redirect_uri        => 'https://sample.com/auth_callback', # for OAuth
       batch_limit         => 50,
       json                => JSON->new->utf8,
-      is_beta             => 1,
+      is_beta             => 0,
       use_appsecret_proof => 1,
+      use_post_method     => 0,
   })
 
 =head2 Instance Methods
@@ -749,7 +846,8 @@ Accessor method that returns URL that is used for user authorization.
 Accessor method that returns the maximum # of queries that can be set w/in a 
 single batch request. If the # of given queries exceeds this, then queries are 
 divided into multiple batch requests and responses are combined so it just 
-seems like a single batch request. Default value is 50 as API documentation says.
+seems like a single batch request. Default value is 50 as API documentation 
+says.
 
 =head3 C<< $fb->is_beta >>
 
@@ -807,12 +905,15 @@ It parses signed_request that Facebook Platform gives to your callback endpoint.
 =head3 C<< $fb->auth_uri(\%args) >>
 
 Returns URL for Facebook OAuth dialog. You can redirect your user to this 
-returning URL for authorization purpose. See 
-L<https://developers.facebook.com/docs/reference/dialogs/oauth/> for details.
+URL for authorization purpose.
+
+See the detailed flow at L<https://developers.facebook.com/docs/facebook-login/manually-build-a-login-flow>. 
+Optional values are shown at L<https://developers.facebook.com/docs/reference/dialogs/oauth/>.
 
   my $auth_url = $fb->auth_uri(+{
-      display => 'page', # Dialog's display type. Default value is 'page.'
-      scope   => [qw/email publish_actions/],
+      display       => 'page', # Dialog's display type. Default value is 'page.'
+      response_type => 'code',
+      scope         => [qw/email publish_actions/],
   });
   $c->redirect($auth_url);
 
@@ -942,6 +1043,10 @@ create L<Facebook::OpenGraph::Response> to handle each response.
   #        },
   #    ]
   #]
+
+You can specify access token for each query w/in a single batch request. 
+See L<https://developers.facebook.com/docs/graph-api/making-multiple-requests/> 
+for detail.
 
 =head3 C<< $fb->fql($fql_query) >>
 
