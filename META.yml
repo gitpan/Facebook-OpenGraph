@@ -12,7 +12,7 @@ configure_requires:
   CPAN::Meta::Prereqs: 0
   Module::Build: 0.38
 dynamic_config: 0
-generated_by: 'Minilla/v0.11.0, CPAN::Meta::Converter version 2.120921'
+generated_by: 'Minilla/v0.14.1, CPAN::Meta::Converter version 2.120921'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -31,7 +31,7 @@ no_index:
 provides:
   Facebook::OpenGraph:
     file: lib/Facebook/OpenGraph.pm
-    version: 1.13
+    version: 1.20
   Facebook::OpenGraph::Response:
     file: lib/Facebook/OpenGraph/Response.pm
     version: 0
@@ -54,7 +54,7 @@ resources:
   bugtracker: https://github.com/oklahomer/p5-Facebook-OpenGraph/issues
   homepage: https://github.com/oklahomer/p5-Facebook-OpenGraph
   repository: git://github.com/oklahomer/p5-Facebook-OpenGraph.git
-version: 1.13
+version: 1.20
 x_contributors:
   - 'Oklahomer <go.hagiwara@facebook.com>'
   - 'Oklahomer <hagiwara.go@gmail.com>'

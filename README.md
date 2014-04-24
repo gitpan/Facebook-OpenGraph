@@ -4,7 +4,7 @@ Facebook::OpenGraph - Simple way to handle Facebook's Graph API.
 
 # VERSION
 
-This is Facebook::OpenGraph version 1.13
+This is Facebook::OpenGraph version 1.20
 
 # SYNOPSIS
 
@@ -266,7 +266,16 @@ users to your Facebook page, App's Canvas page or any location on facebook.com.
 
 ### `$fb->parse_signed_request($signed_request_str)`
 
-It parses signed\_request that Facebook Platform gives to your callback endpoint.
+It parses signed\_request that Facebook Platform gives to you on various 
+situations. situations may include
+
+- Given as a URL fragment on callback endpoint after login flow is done 
+with Login Dialog
+- POSTed when Page Tab App is loaded
+- Set in a form of cookie by JS SDK
+
+Fields in returning value are introduced at 
+[https://developers.facebook.com/docs/reference/login/signed-request/](https://developers.facebook.com/docs/reference/login/signed-request/).
 
     my $req = Plack::Request->new($env);
     my $val = $fb->parse_signed_request($req->query_param('signed_request'));
@@ -325,6 +334,36 @@ the user.
     my $access_token = $token_ref->{access_token};
     my $expires      = $token_ref->{expires};
 
+### `$fb->get_user_token_by_cookie($cookie_value)`
+
+Obtain user access token based on the cookie value that is set by JS SDK.
+Cookie name should be determined with `js_cookie_name()`.
+
+    if (my $cookie = $c->req->cookie( $fb->js_cookie_name )) {
+      # User is not logged in yet, but cookie is set by JS SDK on previous visit.
+      my $token_ref = $fb->get_user_token_by_cookie($cookie);
+      # {
+      #     "access_token" : "new_token_string_qwerty",
+      #     "expires" : 5752
+      # };
+    }
+    else {
+      return $c->redirect( $fb->auth_uri );
+    }
+
+### `$fb->exchange_token($short_term_token)`
+
+Exchange short lived access token for long lived one. Short lived tokens are 
+ones that you obtain with `get_user_token_by_code()`. Usually long lived 
+tokens live about 60 days while short lived ones live about 2 hours.
+
+    my $extended_token_ref = $fb->exchange_token($token_ref->{access_token});
+    my $access_token       = $extended_token_ref->{access_token};
+    my $expires            = $extended_token_ref->{expires};
+
+If you loved how old offline\_access permission worked and are looking for a 
+substitute you might want to try this.
+
 ### `$fb->get($path, \%param, \@headers)`
 
 Alias to `request()` that sends `GET` request.
@@ -381,7 +420,13 @@ Request batch request and returns an array reference.
 
 ### `$fb->batch(\@requests)`
 
-Request batch request and returns an array reference.
+Request batch request and returns an array reference of response objects. It 
+sets `$fb-`access\_token> as top level access token, but other than that you 
+can specify indivisual access token for each request. The document says 
+"The Batch API is flexible and allows individual requests to specify their own 
+access tokens as a query string or form post parameter. In that case the top 
+level access token is considered a fallback token and is used if an individual 
+request has not explicitly specified an access token."
 
     my $data = $fb->batch([
         +{method => 'GET', relative_url => 'zuck'},
@@ -470,9 +515,16 @@ object.
 
 ### `$fb->gen_appsecret_proof`
 
-Generate signature for appsecret\_proof parameter. This method is called in 
+Generates signature for appsecret\_proof parameter. This method is called in 
 `request()` if `$self-`use\_appsecret\_proof> is set. See 
 [http://facebook-docs.oklahome.net/archives/52097348.html](http://facebook-docs.oklahome.net/archives/52097348.html) for Japanese Info.
+
+### `$fb->js_cookie_name`
+
+Generates and returns the name of cookie that is set by JS SDK on client side 
+login. This value can be parsed as signed request and the parsed data structure 
+contains 'code' to exchange for acess token. See `get_user_token_by_cookie()` 
+for detail.
 
 ### `$fb->create_response($http_status_code, $http_status_message, \@response_headers, $response_content)`
 
