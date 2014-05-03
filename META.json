@@ -72,7 +72,7 @@
    "provides" : {
       "Facebook::OpenGraph" : {
          "file" : "lib/Facebook/OpenGraph.pm",
-         "version" : "1.20"
+         "version" : "1.21"
       },
       "Facebook::OpenGraph::Response" : {
          "file" : "lib/Facebook/OpenGraph/Response.pm"
@@ -89,7 +89,7 @@
          "web" : "https://github.com/oklahomer/p5-Facebook-OpenGraph"
       }
    },
-   "version" : "1.20",
+   "version" : "1.21",
    "x_contributors" : [
       "Oklahomer <go.hagiwara@facebook.com>",
       "Oklahomer <hagiwara.go@gmail.com>"
