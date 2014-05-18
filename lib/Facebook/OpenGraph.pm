@@ -1,6 +1,8 @@
 package Facebook::OpenGraph;
 use strict;
 use warnings;
+use 5.008001;
+
 use Facebook::OpenGraph::Response;
 use HTTP::Request::Common;
 use URI;
@@ -12,7 +14,7 @@ use Digest::SHA qw(hmac_sha256 hmac_sha256_hex);
 use MIME::Base64::URLSafe qw(urlsafe_b64decode);
 use Scalar::Util qw(blessed);
 
-our $VERSION = '1.21';
+our $VERSION = '1.22';
 
 sub new {
     my $class = shift;
@@ -203,10 +205,7 @@ sub get_user_token_by_code {
         redirect_uri => $self->redirect_uri,
         code         => $code,
     };
-    my $token_ref = $self->_get_token($query_ref);
-    croak 'expires is not returned' unless $token_ref->{expires};
-
-    return $token_ref;
+    return $self->_get_token($query_ref);
 }
 
 sub get_user_token_by_cookie {
@@ -233,11 +232,7 @@ sub get_user_token_by_cookie {
         code         => $parsed_signed_request->{code},
         redirect_uri => '',
     };
-    my $token_ref = $self->_get_token($query_ref);
-
-    croak 'expires is not returned' unless $token_ref->{expires};
-
-    return $token_ref;
+    return $self->_get_token($query_ref);
 }
 
 # Access Tokens > Expiration and Extending Tokens
@@ -251,10 +246,7 @@ sub exchange_token {
         grant_type        => 'fb_exchange_token',
         fb_exchange_token => $short_term_token,
     };
-    my $token_ref = $self->_get_token($query_ref);
-    croak 'expires is not returned' unless $token_ref->{expires};
-
-    return $token_ref;
+    return $self->_get_token($query_ref);
 }
 
 sub _get_token {
@@ -269,10 +261,16 @@ sub _get_token {
     };
 
     my $response = $self->request('GET', '/oauth/access_token', $param_ref);
-    # Get access_token from response content
-    # content should be 'access_token=12345|QwerTy&expires=5183951' formatted
+    # Document describes as follows:
+    # "The response you will receive from this endpoint, if successful, is
+    # access_token={access-token}&expires={seconds-til-expiration}
+    # If it is not successful, you'll receive an explanatory error message."
+    #
+    # It, however, returnes no "expires" parameter on some edge cases.
+    # e.g. Your app requests manage_pages permission.
+    # https://developers.facebook.com/bugs/597779113651383/
     my $res_content = $response->content;
-    my $token_ref = +{URI->new('?'.$res_content)->query_form};
+    my $token_ref = +{ URI->new('?'.$res_content)->query_form };
     croak qq{can't get access_token properly: $res_content}
         unless $token_ref->{access_token};
 
@@ -685,7 +683,7 @@ Facebook::OpenGraph - Simple way to handle Facebook's Graph API.
 
 =head1 VERSION
 
-This is Facebook::OpenGraph version 1.21
+This is Facebook::OpenGraph version 1.22
 
 =head1 SYNOPSIS
 
@@ -1064,6 +1062,9 @@ on your callback endpoint which is specified on C<eredirect_uri>. Give the
 returning access token to C<set_access_token()> and you can act on behalf of
 the user.
 
+FYI: I<expires> is B<NOT> returned on some edge cases. The detail and schenario
+should be found at L<https://developers.facebook.com/bugs/597779113651383/>.
+
   # On OAuth callback page which you specified on $fb->redirect_uri.
   my $req          = Plack::Request->new($env);
   my $token_ref    = $fb->get_user_token_by_code($req->query_param('code'))
@@ -1074,6 +1075,9 @@ the user.
 
 Obtain user access token based on the cookie value that is set by JS SDK.
 Cookie name should be determined with C<js_cookie_name()>.
+
+FYI: I<expires> is B<NOT> returned on some edge cases. The detail and schenario
+should be found at L<https://developers.facebook.com/bugs/597779113651383/>.
 
   if (my $cookie = $c->req->cookie( $fb->js_cookie_name )) {
     # User is not logged in yet, but cookie is set by JS SDK on previous visit.
@@ -1092,6 +1096,9 @@ Cookie name should be determined with C<js_cookie_name()>.
 Exchange short lived access token for long lived one. Short lived tokens are
 ones that you obtain with C<get_user_token_by_code()>. Usually long lived
 tokens live about 60 days while short lived ones live about 2 hours.
+
+FYI: I<expires> is B<NOT> returned on some edge cases. The detail and schenario
+should be found at L<https://developers.facebook.com/bugs/597779113651383/>.
 
   my $extended_token_ref = $fb->exchange_token($token_ref->{access_token});
   my $access_token       = $extended_token_ref->{access_token};

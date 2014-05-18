@@ -4,7 +4,7 @@ Facebook::OpenGraph - Simple way to handle Facebook's Graph API.
 
 # VERSION
 
-This is Facebook::OpenGraph version 1.21
+This is Facebook::OpenGraph version 1.22
 
 # SYNOPSIS
 
@@ -54,7 +54,7 @@ This was inspired by [Facebook::Graph](https://metacpan.org/pod/Facebook::Graph)
 customizability because Facebook Platform modifies its API specs so frequently
 and we have to be able to handle it in shorter period of time.
 
-This module does __NOT__ provide ways to set and validate parameters for each
+This module does **NOT** provide ways to set and validate parameters for each
 API endpoint like Facebook::Graph does with Any::Moose. Instead it provides
 some basic methods for HTTP request. It also provides some handy methods that
 wrap `request()` for you to easily utilize most of Graph API's functionalities
@@ -357,6 +357,9 @@ on your callback endpoint which is specified on `eredirect_uri`. Give the
 returning access token to `set_access_token()` and you can act on behalf of
 the user.
 
+FYI: _expires_ is **NOT** returned on some edge cases. The detail and schenario
+should be found at [https://developers.facebook.com/bugs/597779113651383/](https://developers.facebook.com/bugs/597779113651383/).
+
     # On OAuth callback page which you specified on $fb->redirect_uri.
     my $req          = Plack::Request->new($env);
     my $token_ref    = $fb->get_user_token_by_code($req->query_param('code'))
@@ -367,6 +370,9 @@ the user.
 
 Obtain user access token based on the cookie value that is set by JS SDK.
 Cookie name should be determined with `js_cookie_name()`.
+
+FYI: _expires_ is **NOT** returned on some edge cases. The detail and schenario
+should be found at [https://developers.facebook.com/bugs/597779113651383/](https://developers.facebook.com/bugs/597779113651383/).
 
     if (my $cookie = $c->req->cookie( $fb->js_cookie_name )) {
       # User is not logged in yet, but cookie is set by JS SDK on previous visit.
@@ -385,6 +391,9 @@ Cookie name should be determined with `js_cookie_name()`.
 Exchange short lived access token for long lived one. Short lived tokens are
 ones that you obtain with `get_user_token_by_code()`. Usually long lived
 tokens live about 60 days while short lived ones live about 2 hours.
+
+FYI: _expires_ is **NOT** returned on some edge cases. The detail and schenario
+should be found at [https://developers.facebook.com/bugs/597779113651383/](https://developers.facebook.com/bugs/597779113651383/).
 
     my $extended_token_ref = $fb->exchange_token($token_ref->{access_token});
     my $access_token       = $extended_token_ref->{access_token};
